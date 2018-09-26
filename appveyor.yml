@@ -1,0 +1,31 @@
+version: '{branch}.{build}'
+pull_requests:
+  do_not_increment_build_number: true
+skip_tags: true
+image: Visual Studio 2017
+configuration:
+  - Debug
+  - Release
+platform: x64
+clone_depth: 1
+environment:
+  premake_dir: $(APPVEYOR_BUILD_FOLDER)/Premake
+clone_script:
+  - cmd: git clone -q --branch=%APPVEYOR_REPO_BRANCH% https://github.com/%APPVEYOR_REPO_NAME%.git %APPVEYOR_BUILD_FOLDER%
+  - cmd: cd %APPVEYOR_BUILD_FOLDER%
+  - cmd: git checkout -qf %APPVEYOR_REPO_COMMIT%
+  - cmd: git submodule update --init --recursive
+install:
+  - ps: appveyor DownloadFile https://github.com/premake/premake-core/releases/download/v5.0.0-alpha12/premake-5.0.0-alpha12-windows.zip
+  - ps: 7z e premake-*-windows.zip -o"$env:premake_dir"
+before_build:
+  - ps: cd "$env:premake_dir"
+  - ps: ./GenerateVisualStudioProjects.bat
+build:
+  project: Premake/Projects/RenHook.sln
+  verbosity: minimal
+after_build:
+  - ps: 7z a "$env:APPVEYOR_BUILD_FOLDER/Build/$env:CONFIGURATION/RenHook.zip" "$env:APPVEYOR_BUILD_FOLDER/Build/$env:CONFIGURATION/RenHook.*"
+artifacts:
+- path: Build/$(configuration)/RenHook.zip
+  name: RenHook
